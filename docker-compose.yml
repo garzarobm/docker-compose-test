@@ -9,9 +9,37 @@ services:
     volumes:
       - db-data:/var/lib/backup/data
 
+    depends_on:
+      - backend
+    environment:
+      BACKUP_DIR: /var/lib/backup/data
+      DATABASE_URL: postgres://user:password@backend/db
+    command: ["sh", "-c", "cp -r /var/lib/backup/data/* /backup/"]
+    restart: on-failure
+  frontend:
+    image: example/frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend 
+      - backup
+    environment:
+      API_URL: http://backend:8080
+      BACKUP_URL: http://backup:8080
+    command: ["sh", "-c", "npm start"]
+    restart: always
+networks:
+  default:
+    driver: bridge
+
 volumes:
   db-data:
     driver: local
-    driver_opts:
-      type: "btrfs"
-      o: "o=size=1000m, uid=1026, gid=1000"
+  backup-data:
+    driver: local
+  frontend-data:
+    driver: local
+  backend-data:
+    driver: local
+  backup:
+    driver: local
